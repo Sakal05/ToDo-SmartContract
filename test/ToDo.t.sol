@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Test, console2} from "forge-std/Test.sol";
 import {ToDo} from "../src/ToDo.sol";
+import "forge-std/console.sol";
 
 contract TodoTest is Test {
     ToDo public todo;
@@ -71,5 +72,33 @@ contract TodoTest is Test {
         // }
 
         vm.stopPrank();
+    }
+
+    function testGetTasks() public {
+        vm.startPrank(address(1));
+        todo.createTask(
+            "Clean house",
+            sharedAddresses // Access elements using square brackets []
+        );
+        
+        assertEq(todo.getMyTasks()[0].taskName, "Clean house");
+        vm.stopPrank();
+    }
+
+    function testGetSharedTasks() public {
+        vm.startPrank(address(1));
+        todo.createTask(
+            "Clean house",
+            sharedAddresses // Access elements using square brackets []
+        );
+        todo.createTask(
+            "wash car",
+            sharedAddresses // Access elements using square brackets []
+        );
+        vm.startPrank(address(11));
+        ToDo.TodoInfo[] memory sharedTasks = todo.getSharedTasks(address(1));
+        assertEq(sharedTasks.length, 2);
+        console.log("Shared tasks", sharedTasks[0].completed);
+        assertEq(sharedTasks[0].completed, false);
     }
 }
