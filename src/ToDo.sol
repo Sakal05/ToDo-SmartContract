@@ -19,10 +19,11 @@ contract ToDo {
         uint256 updatedAt
     );
     event TaskCompleted(uint256 indexed taskId, bool status, uint256 updatedAt);
-    event TaskShared(address indexed creator, uint256 taskIndex, address sharedWith);
+    event TaskShared(address indexed creator, uint256 taskIndex, address[] sharedWith);
 
     error UnAuthorized();
     error TaskAlreadyCompleted();
+    error InvalidAddress();
 
     // mapping of todoInfo index to creator
     mapping(address => TodoInfo[]) private userTaskInfo;
@@ -52,10 +53,13 @@ contract ToDo {
         );
         // Share the task with specified addresses
         if (_sharedWith.length > 0) {
-            for (uint256 i = 0; i < _sharedWith.length; i++) {
-                sharedTaskUser[msg.sender][newTask.id] = _sharedWith;
-                emit TaskShared(msg.sender, userTaskInfo[msg.sender].length - 1, _sharedWith[i]);
+            for (uint i = 0; i < _sharedWith.length; i++) {
+                if (_sharedWith[i] == address(0)) {
+                    revert InvalidAddress();
+                }
             }
+            sharedTaskUser[msg.sender][newTask.id] = _sharedWith;
+            emit TaskShared(msg.sender, userTaskInfo[msg.sender].length - 1, _sharedWith);
         }
     }
 
@@ -73,22 +77,25 @@ contract ToDo {
     function getSharedTasks(address _creator) external view returns (TodoInfo[] memory mySharedTasks) {
         uint256 count = 0;
         uint256 creatorTaskLength = userTaskInfo[_creator].length;
-        // uint256[] memory createTaskIds = new uint256[](creatorTaskLength);
 
         for (uint256 i = 0; i < creatorTaskLength; i++) {
             for (uint256 j = 0; j < sharedTaskUser[_creator][i].length; j++) {
                 if (sharedTaskUser[_creator][i][j] == msg.sender) {
                     count++;
+                    break; // Exit inner loop once the user is found
                 }
             }
         }
 
         mySharedTasks = new TodoInfo[](count);
+        count = 0; // Reset count for array population
 
         for (uint256 i = 0; i < creatorTaskLength; i++) {
             for (uint256 j = 0; j < sharedTaskUser[_creator][i].length; j++) {
                 if (sharedTaskUser[_creator][i][j] == msg.sender) {
-                    mySharedTasks[i] = userTaskInfo[_creator][i];
+                    mySharedTasks[count] = userTaskInfo[_creator][i];
+                    count++;
+                    break; // Exit inner loop once the user is found
                 }
             }
         }

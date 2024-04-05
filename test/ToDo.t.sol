@@ -8,23 +8,23 @@ import "forge-std/console.sol";
 contract TodoTest is Test {
     ToDo public todo;
 
-    event CreateTask(
-        uint256 indexed index,
-        address indexed creator,
-        string taskName,
-        bool completed,
-        uint256 createdAt,
-        uint256 updatedAt
-    );
-    event TaskShared(address indexed creator, uint256 taskIndex, address sharedWith);
+    // event CreateTask(
+    //     uint256 indexed index,
+    //     address indexed creator,
+    //     string taskName,
+    //     bool completed,
+    //     uint256 createdAt,
+    //     uint256 updatedAt
+    // );
+    // event TaskShared(address indexed creator, uint256 taskIndex, address sharedWith);
 
-    struct TodoInfo {
-        uint256 id;
-        string taskName;
-        bool completed;
-        uint256 createdAt;
-        uint256 updatedAt;
-    }
+    // struct TodoInfo {
+    //     uint256 id;
+    //     string taskName;
+    //     bool completed;
+    //     uint256 createdAt;
+    //     uint256 updatedAt;
+    // }
 
     address[] public sharedAddresses = [address(11), address(22), address(33), address(44)];
 
@@ -37,14 +37,18 @@ contract TodoTest is Test {
 
         vm.expectEmit(true, true, false, true, address(todo)); // Asserting CreateTask event
         emit ToDo.CreateTask(0, address(1), "Clean house", false, block.timestamp, block.timestamp);
+
+        vm.expectEmit(true, false, false, true, address(todo)); // Asserting CreateTask event
+        emit ToDo.TaskShared(address(1), 0, sharedAddresses);
         todo.createTask(
             "Clean house",
             sharedAddresses // Access elements using square brackets []
         );
-
-        // for (uint256 i = 0; i < sharedAddresses.length; i++) {
-        //     vm.expectEmit(true, false, false, true, address(todo)); // Asserting TaskShared events
-        // }
+        assertEq(todo.getMyTasks().length, 1);
+        for (uint i = 0; i < sharedAddresses.length; i++) {
+            vm.startPrank(sharedAddresses[i]);
+            assertEq(todo.getSharedTasks(address(1)).length, 1);
+        }
 
         vm.stopPrank();
     }
@@ -77,13 +81,16 @@ contract TodoTest is Test {
             "wash car",
             sharedAddresses // Access elements using square brackets []
         );
-        // change caller to shared addrerss
-        vm.startPrank(sharedAddresses[1]);
-        ToDo.TodoInfo[] memory sharedTasks = todo.getSharedTasks(address(1));
-        assertEq(sharedTasks.length, 2);
-        console.log("Shared tasks", sharedTasks[0].completed);
-        assertEq(sharedTasks[0].completed, false);
+
         vm.stopPrank();
+        // change caller to shared addresses
+        for (uint i = 0; i < sharedAddresses.length; i++) {
+            vm.startPrank(sharedAddresses[i]);
+            assertNotEq(todo.getSharedTasks(address(1)).length, 1);
+            assertEq(todo.getSharedTasks(address(1)).length, 2);
+            console.log("Shared tasks", todo.getSharedTasks(address(1))[0].taskName);
+        }
+        assertEq(todo.getSharedTasks(address(1))[0].completed, false);
     }
 
     function testMarkTaskCompleteByCreator() public {
