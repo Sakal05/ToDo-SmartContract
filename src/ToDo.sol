@@ -11,9 +11,14 @@ contract ToDo {
     }
 
     event CreateTask(
-        uint256 indexed index, address indexed creator, string taskName, bool completed, uint256 createdAt, uint256 updatedAt
+        uint256 indexed index,
+        address indexed creator,
+        string taskName,
+        bool completed,
+        uint256 createdAt,
+        uint256 updatedAt
     );
-    event TaskCompleted(uint256 taskId, bool status, uint256 updatedAt);
+    event TaskCompleted(uint256 indexed taskId, bool status, uint256 updatedAt);
     event TaskShared(address indexed creator, uint256 taskIndex, address sharedWith);
 
     error UnAuthorized();
@@ -52,7 +57,6 @@ contract ToDo {
                 emit TaskShared(msg.sender, userTaskInfo[msg.sender].length - 1, _sharedWith[i]);
             }
         }
-
     }
 
     function getMyTasks() external view returns (TodoInfo[] memory myToDoInfos) {
@@ -92,7 +96,7 @@ contract ToDo {
         return mySharedTasks;
     }
 
-    function checkedSharedTask(address _creator, uint256 taskId) internal view returns (bool) {
+    function checkedSharedTask(address _creator, uint256 taskId) public view returns (bool) {
         for (uint256 j = 0; j < sharedTaskUser[_creator][taskId].length; j++) {
             if (sharedTaskUser[_creator][taskId][j] == msg.sender) {
                 return true;
@@ -103,19 +107,19 @@ contract ToDo {
 
     function markAsCompleted(address _creator, uint256 _taskIndex) external {
         require(_creator != address(0) && _taskIndex < userTaskInfo[_creator].length, "Invalid task");
-        if (msg.sender != _creator || !checkedSharedTask(_creator, _taskIndex)) {
+        if (msg.sender != _creator && checkedSharedTask(_creator, _taskIndex) == false) {
             revert UnAuthorized();
         }
 
         TodoInfo storage task = userTaskInfo[_creator][_taskIndex];
 
-        if (task.completed) {
+        if (task.completed == true) {
             revert TaskAlreadyCompleted();
         }
 
         task.completed = true;
         task.updatedAt = block.timestamp;
 
-        emit TaskCompleted(_taskIndex, true, block.timestamp);
+        emit TaskCompleted(_taskIndex, task.completed, block.timestamp);
     }
 }
