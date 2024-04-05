@@ -78,7 +78,7 @@ contract TodoTest is Test {
             sharedAddresses // Access elements using square brackets []
         );
         // change caller to shared addrerss
-        vm.startPrank(address(11));
+        vm.startPrank(sharedAddresses[1]);
         ToDo.TodoInfo[] memory sharedTasks = todo.getSharedTasks(address(1));
         assertEq(sharedTasks.length, 2);
         console.log("Shared tasks", sharedTasks[0].completed);
